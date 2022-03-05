@@ -5,6 +5,7 @@ export const prepareData = (filterObject) => {
     const filteredByYear = d.filter(
       (i) => i.launch_year === filterObject.year.toString()
     );
+
     const payLoadsFiltered = filteredByYear.filter((i) => {
       const yesOrNo = [];
       i.rocket.second_stage.payloads.forEach((j) => {
