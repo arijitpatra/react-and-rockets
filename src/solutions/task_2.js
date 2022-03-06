@@ -3,20 +3,24 @@
 import { useEffect, useState } from "react";
 import { prepareData } from "./task_1";
 
-const usePrepareData = (filterParams) => {
-  const [final, setFinal] = useState([]);
-  const [fullData, setFullData] = useState([]);
+/* custom hook to fetch API once and process data on filter params change 
+(could have been moved to different file, but not sure if I am allowed or not to do so for this task) */
+const useFetchAndPrepareData = (filterParams) => {
+  const url = "https://api.spacexdata.com/v3/launches/past";
+  const [workingData, setWorkingData] = useState([]);
+  const [masterData, setMasterData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const setting = (data) => {
-    setFullData(data);
+    setMasterData(data);
     setIsLoading(false);
   };
 
+  // fetch api
   useEffect(() => {
     setIsLoading(true);
     window
-      .fetch("https://api.spacexdata.com/v3/launches/past")
+      .fetch(url)
       .then((response) => response.json())
       .then((data) => setting(data))
       .catch((error) => {
@@ -25,27 +29,28 @@ const usePrepareData = (filterParams) => {
       });
   }, []);
 
+  // re-process data on filter change
   useEffect(() => {
-    setFinal(prepareData(filterParams)(fullData));
-  }, [filterParams, fullData]);
+    setWorkingData(prepareData(filterParams)(masterData));
+  }, [filterParams, masterData]);
 
-  return { final, isLoading };
+  return { workingData, isLoading };
 };
 
 export const RocketsList = ({ filterParams }) => {
-  const { final, isLoading } = usePrepareData(filterParams);
+  const { workingData, isLoading } = useFetchAndPrepareData(filterParams);
 
   const getLists = () => {
-    return final.map((i) => (
+    return workingData.map((item) => (
       <div
-        key={i.mission_name}
-      >{`#${i.flight_number} ${i.mission_name} (${i.payloads_count})`}</div>
+        key={item.mission_name}
+      >{`#${item.flight_number} ${item.mission_name} (${item.payloads_count})`}</div>
     ));
   };
 
-  return isLoading && final.length === 0 ? (
+  return isLoading ? (
     <div>Loading...</div>
-  ) : final.length > 0 ? (
+  ) : workingData.length > 0 ? (
     getLists()
   ) : (
     <div>No data</div>

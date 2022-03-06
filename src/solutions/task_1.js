@@ -1,39 +1,58 @@
 // Please implement your solution in this file
 
+// inverse sort util
+const inverseSort = (data, sortCriteria) => {
+  // incase sortCriteria is a chained string of object keys
+  const splitSortCriteriaForObjectChaining = (item) =>
+    sortCriteria.split(".").reduce((acc, propertyKey) => {
+      return acc[propertyKey];
+    }, item);
+
+  return data.sort(
+    (x, y) =>
+      splitSortCriteriaForObjectChaining(y) -
+      splitSortCriteriaForObjectChaining(x)
+  );
+};
+
 export const prepareData = (filterObject) => {
-  return (d) => {
-    const filteredByYear = d.filter(
-      (i) => i.launch_year === filterObject.year.toString()
+  // prepareData returns a function which accepts data as parameter
+  return (data) => {
+    // filter data based on the year passed in filterObject
+    const dataFilteredByYear = data.filter(
+      (item) => item.launch_year === filterObject.year.toString()
     );
 
-    const payLoadsFiltered = filteredByYear.filter((i) => {
-      const yesOrNo = [];
-      i.rocket.second_stage.payloads.forEach((j) => {
-        if (j.customers.some((s) => s.includes(filterObject.customerName))) {
-          yesOrNo.push(1);
-        }
+    // filter data based on the customer name passed in filterObject
+    const dataFilteredByCustomerName = dataFilteredByYear.filter((item) => {
+      return item.rocket.second_stage.payloads.some((payload) => {
+        return payload.customers.some((customer) =>
+          customer.includes(filterObject.customerName)
+        );
       });
-      return yesOrNo.length > 0 ? true : false;
     });
 
-    const timeSorted = payLoadsFiltered.sort(function (x, y) {
-      return y.launch_date_unix - x.launch_date_unix;
-    });
+    // sort by time - reverse chronology
+    const dataSortedByTime = inverseSort(
+      dataFilteredByCustomerName,
+      "launch_date_unix"
+    );
 
-    const payloadCountSorted = timeSorted.sort(function (x, y) {
-      return (
-        y.rocket.second_stage.payloads.length -
-        x.rocket.second_stage.payloads.length
-      );
-    });
+    // sort by the number of payloads - descending order
+    const dataSortedByPayloadCount = inverseSort(
+      dataSortedByTime,
+      "rocket.second_stage.payloads.length"
+    );
 
-    return payloadCountSorted.reduce((a, i) => {
+    /* now dataSortedByPayloadCount here is all filtered and sorted, 
+    it is the final stage, we transform its structure as per requirement using array reduce method */
+    return dataSortedByPayloadCount.reduce((acc, item) => {
       return [
-        ...a,
+        ...acc,
         {
-          flight_number: i.flight_number,
-          mission_name: i.mission_name,
-          payloads_count: i.rocket.second_stage.payloads.length,
+          flight_number: item.flight_number,
+          mission_name: item.mission_name,
+          payloads_count: item.rocket.second_stage.payloads.length,
         },
       ];
     }, []);
